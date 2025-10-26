@@ -71,15 +71,39 @@ function setStatus(message) {
   broadcastState();
 }
 
-function handleAddPlayer({ name }) {
+function sendDirectMessage(ws, payload) {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify(payload));
+  }
+}
+
+function handleAddPlayer({ name, requestId }, ws) {
   const trimmed = typeof name === "string" ? name.trim() : "";
+  const notifyAll = !requestId;
+
   if (!trimmed) {
-    setStatus("Please enter a name before adding.");
+    if (notifyAll) {
+      setStatus("Please enter a name before adding.");
+    } else {
+      sendDirectMessage(ws, {
+        type: "playerAddRejected",
+        requestId,
+        reason: "Please enter a name before adding.",
+      });
+    }
     return;
   }
 
   if (state.gameActive || state.countdownRunning) {
-    setStatus("Wait for the round to finish before adding players.");
+    if (notifyAll) {
+      setStatus("Wait for the round to finish before adding players.");
+    } else {
+      sendDirectMessage(ws, {
+        type: "playerAddRejected",
+        requestId,
+        reason: "Wait for the round to finish before joining.",
+      });
+    }
     return;
   }
 
@@ -91,6 +115,15 @@ function handleAddPlayer({ name }) {
   nextPlayerId += 1;
 
   state.statusMessage = "";
+
+  if (!notifyAll) {
+    sendDirectMessage(ws, {
+      type: "playerAdded",
+      requestId,
+      player: state.players[state.players.length - 1],
+    });
+  }
+
   broadcastState();
 }
 

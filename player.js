@@ -3,6 +3,10 @@
 const countdownDisplay = document.querySelector("#countdownDisplay");
 const loserDisplay = document.querySelector("#loserDisplay");
 const statusMessageEl = document.querySelector("#statusMessage");
+const joinForm = document.querySelector("#joinForm");
+const playerNameInput = document.querySelector("#playerNameInput");
+const joinButton = document.querySelector("#joinButton");
+const joinStatusEl = document.querySelector("#joinStatus");
 const playerSelect = document.querySelector("#playerSelect");
 const selectionHint = document.querySelector("#selectionHint");
 const clickButton = document.querySelector("#clickButton");
@@ -15,6 +19,10 @@ let connectionStatus = "Connecting to server...";
 let reconnectTimer = null;
 const RECONNECT_DELAY = 2000;
 
+let pendingJoin = null;
+let joinStatusText = "";
+let joinStatusVariant = "info";
+
 const appState = {
   players: [],
   countdownDisplay: "Ready",
@@ -25,6 +33,55 @@ const appState = {
 };
 
 let selectedPlayerId = null;
+
+function generateRequestId() {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function setJoinStatus(message, variant = "info") {
+  joinStatusText = message;
+  joinStatusVariant = variant;
+}
+
+function renderJoinStatus() {
+  if (!joinStatusEl) {
+    return;
+  }
+
+  joinStatusEl.textContent = joinStatusText;
+
+  let colorClass = "text-slate-500";
+  if (joinStatusVariant === "error") {
+    colorClass = "text-rose-500";
+  } else if (joinStatusVariant === "success") {
+    colorClass = "text-emerald-600";
+  }
+
+  joinStatusEl.className = `text-sm min-h-[1.5rem] ${colorClass}`;
+}
+
+function renderJoinControls() {
+  if (!playerNameInput || !joinButton) {
+    return;
+  }
+
+  const gameLocked = appState.countdownRunning || appState.gameActive;
+  const connectionLocked = !socketConnected;
+  const waiting = pendingJoin !== null;
+
+  const disableInput = gameLocked || connectionLocked || waiting;
+  playerNameInput.disabled = disableInput;
+
+  const trimmed = playerNameInput.value.trim();
+  const disableButton = disableInput || trimmed.length === 0;
+  joinButton.disabled = disableButton;
+
+  joinButton.textContent = waiting ? "Joining..." : "Join game";
+}
 
 function loadSelection() {
   try {
@@ -60,6 +117,47 @@ function getSelectedPlayer() {
   return appState.players.find((player) => player.id === selectedPlayerId);
 }
 
+function completePendingJoin(player, { requestId, matchName = false } = {}) {
+  if (!pendingJoin) {
+    return false;
+  }
+
+  if (requestId && pendingJoin.requestId !== requestId) {
+    return false;
+  }
+
+  if (matchName && pendingJoin.name !== player.name) {
+    return false;
+  }
+
+  selectedPlayerId = player.id;
+  saveSelection();
+  pendingJoin = null;
+  if (playerNameInput) {
+    playerNameInput.value = "";
+  }
+  setJoinStatus(`You're in as ${player.name}.`, "success");
+  return true;
+}
+
+function reconcilePendingJoin(previousPlayers) {
+  if (!pendingJoin) {
+    return;
+  }
+
+  const previousIds = new Set(previousPlayers.map((player) => player.id));
+
+  for (const player of appState.players) {
+    if (previousIds.has(player.id)) {
+      continue;
+    }
+
+    if (completePendingJoin(player, { matchName: true })) {
+      break;
+    }
+  }
+}
+
 function playerStatusBadge(player) {
   if (typeof player.reactionTime === "number") {
     return `<span class="rounded-full bg-emerald-100 px-3 py-1 text-sm font-semibold text-emerald-700">${(
@@ -81,7 +179,7 @@ function playerStatusBadge(player) {
 function renderPlayersList() {
   if (appState.players.length === 0) {
     playersList.innerHTML =
-      '<li class="rounded-2xl border border-dashed border-slate-200 bg-white px-4 py-6 text-center text-slate-400">Waiting for the admin to add players.</li>';
+      '<li class="rounded-2xl border border-dashed border-slate-200 bg-white px-4 py-6 text-center text-slate-400">Waiting for players to join.</li>';
     return;
   }
 
@@ -122,12 +220,12 @@ function renderSelectionOptions() {
 
   if (appState.players.length === 0) {
     selectionHint.textContent =
-      "No players yet. Ask the admin to add everyone from the admin page.";
+      "No players yet. Add yourself above to get things started.";
     return;
   }
 
   selectionHint.textContent =
-    "Select your name to link this device. The admin can add more players from their page.";
+    "Select your name to link this device. If you don't see it, join above.";
 }
 
 function renderStatus() {
@@ -142,7 +240,7 @@ function renderStatus() {
 function renderPlayerFeedback() {
   const selectedPlayer = getSelectedPlayer();
   if (!selectedPlayer) {
-    playerFeedback.textContent = "Select your name above to get ready.";
+    playerFeedback.textContent = "Join the game above to get ready.";
     return;
   }
 
@@ -193,15 +291,19 @@ function render() {
   renderPlayersList();
   renderPlayerFeedback();
   renderButtonState();
+  renderJoinControls();
+  renderJoinStatus();
 }
 
 function applyState(newState) {
+  const previousPlayers = appState.players.slice();
   appState.players = newState.players || [];
   appState.countdownDisplay = newState.countdownDisplay || "Ready";
   appState.statusMessage = newState.statusMessage || "";
   appState.loserText = newState.loserText || "Waiting for a round";
   appState.gameActive = Boolean(newState.gameActive);
   appState.countdownRunning = Boolean(newState.countdownRunning);
+  reconcilePendingJoin(previousPlayers);
   render();
 }
 
@@ -239,6 +341,10 @@ function connect() {
       window.clearTimeout(reconnectTimer);
       reconnectTimer = null;
     }
+    if (pendingJoin) {
+      pendingJoin = null;
+    }
+    setJoinStatus("", "info");
     render();
   });
 
@@ -250,14 +356,47 @@ function connect() {
       return;
     }
 
+    if (!message || !message.type) {
+      return;
+    }
+
     if (message.type === "state" && message.state) {
       applyState(message.state);
+      return;
+    }
+
+    if (message.type === "playerAdded" && message.player) {
+      const updated = completePendingJoin(message.player, {
+        requestId: message.requestId,
+      });
+      if (updated) {
+        render();
+      }
+      return;
+    }
+
+    if (message.type === "playerAddRejected") {
+      if (!pendingJoin) {
+        return;
+      }
+
+      if (message.requestId && pendingJoin.requestId !== message.requestId) {
+        return;
+      }
+
+      pendingJoin = null;
+      setJoinStatus(message.reason || "Unable to join right now.", "error");
+      render();
     }
   });
 
   socket.addEventListener("close", () => {
     socketConnected = false;
     connectionStatus = "Disconnected from server. Reconnecting...";
+    if (pendingJoin) {
+      pendingJoin = null;
+    }
+    setJoinStatus("Connection lost. Waiting to reconnect...", "error");
     render();
     scheduleReconnect();
   });
@@ -265,8 +404,52 @@ function connect() {
   socket.addEventListener("error", () => {
     socketConnected = false;
     connectionStatus = "Connection error. Reconnecting...";
+    if (pendingJoin) {
+      pendingJoin = null;
+    }
+    setJoinStatus("Connection error. Waiting to reconnect...", "error");
     render();
     scheduleReconnect();
+  });
+}
+
+if (playerNameInput) {
+  playerNameInput.addEventListener("input", () => {
+    if (joinStatusVariant === "error" && joinStatusText) {
+      setJoinStatus("", "info");
+      renderJoinStatus();
+    }
+    renderJoinControls();
+  });
+}
+
+if (joinForm) {
+  joinForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+
+    if (!socketConnected || pendingJoin) {
+      return;
+    }
+
+    const name = playerNameInput ? playerNameInput.value.trim() : "";
+
+    if (!name) {
+      setJoinStatus("Please enter your name before joining.", "error");
+      render();
+      return;
+    }
+
+    if (appState.countdownRunning || appState.gameActive) {
+      setJoinStatus("Wait for the round to finish before joining.", "error");
+      render();
+      return;
+    }
+
+    const requestId = generateRequestId();
+    pendingJoin = { requestId, name };
+    setJoinStatus("Adding you to the game...", "info");
+    render();
+    sendMessage("addPlayer", { name, requestId });
   });
 }
 

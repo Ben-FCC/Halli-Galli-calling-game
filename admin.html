@@ -31,21 +31,10 @@
 
       <section class="bg-white border border-slate-200 rounded-3xl p-6 space-y-4 shadow-sm">
         <h2 class="text-xl font-semibold">Players</h2>
-        <form id="playerForm" class="flex flex-col gap-3 sm:flex-row">
-          <label class="sr-only" for="playerName">Player name</label>
-          <input
-            id="playerName"
-            type="text"
-            placeholder="Type a name and press Enter"
-            class="flex-1 rounded-full border border-slate-200 px-4 py-2 text-base focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-          />
-          <button
-            type="submit"
-            class="rounded-full bg-sky-500 px-5 py-2 text-white font-medium shadow hover:bg-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-200 disabled:cursor-not-allowed disabled:bg-slate-300"
-          >
-            Add player
-          </button>
-        </form>
+        <p class="text-sm text-slate-500">
+          Players join from the main page by typing their own names. Share the
+          player link with anyone who wants to participate.
+        </p>
         <p id="statusMessage" class="text-sm text-rose-500"></p>
         <ul id="playerList" class="grid gap-3 sm:grid-cols-2"></ul>
       </section>
