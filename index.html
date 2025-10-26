@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Halli Galli Countdown</title>
+    <title>Halli Galli Player</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
       body {
@@ -13,65 +13,57 @@
     </style>
   </head>
   <body class="min-h-screen bg-white text-slate-800">
-    <main class="max-w-3xl mx-auto px-4 py-12 space-y-8">
-      <header class="text-center space-y-2">
+    <main class="max-w-2xl mx-auto px-4 py-12 space-y-8">
+      <header class="text-center space-y-3">
         <h1 class="text-4xl font-semibold tracking-tight">
-          Halli Galli Countdown
+          Halli Galli Player Console
         </h1>
         <p class="text-slate-500">
-          Add everyone&apos;s name, start the countdown, and see who taps last.
+          Keep this tab open. When the countdown hits <span class="font-semibold text-slate-700">Go!</span>, tap the button as
+          fast as you can. The slowest player loses the round.
+        </p>
+        <p class="text-sm text-slate-400">
+          Need to manage the game? Open the
+          <a class="font-medium text-sky-600 hover:text-sky-700" href="/admin">admin control page</a>.
         </p>
       </header>
 
       <section class="bg-slate-50 border border-slate-200 rounded-3xl p-6 space-y-4">
-        <h2 class="text-xl font-semibold">Players</h2>
-        <form id="playerForm" class="flex flex-col gap-3 sm:flex-row">
-          <label class="sr-only" for="playerName">Player name</label>
-          <input
-            id="playerName"
-            type="text"
-            placeholder="Type a name and press Enter"
-            class="flex-1 rounded-full border border-slate-200 px-4 py-2 text-base focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-          />
-          <button
-            type="submit"
-            class="rounded-full bg-sky-500 px-5 py-2 text-white font-medium shadow hover:bg-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-200"
+        <div class="space-y-2">
+          <label class="block text-sm font-medium text-slate-600" for="playerSelect"
+            >Who&apos;s playing on this device?</label
           >
-            Add player
-          </button>
-        </form>
-        <p id="statusMessage" class="text-sm text-rose-500"></p>
-        <ul id="playerList" class="grid gap-3 sm:grid-cols-2"></ul>
+          <select
+            id="playerSelect"
+            class="w-full rounded-full border border-slate-200 bg-white px-4 py-2 text-base focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+          >
+            <option value="">Select your name</option>
+          </select>
+          <p id="selectionHint" class="text-sm text-slate-500">
+            Ask the admin to add you if your name isn&apos;t listed yet.
+          </p>
+        </div>
       </section>
 
       <section class="bg-white border border-slate-200 rounded-3xl p-6 space-y-6 shadow-sm">
-        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <p class="text-sm text-slate-500">
-            When you start, everyone gets a button. The slowest tap after the
-            countdown loses.
-          </p>
-          <div class="flex flex-wrap gap-3">
-            <button
-              id="startButton"
-              class="rounded-full bg-emerald-500 px-5 py-2 text-white font-semibold shadow hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-200"
-            >
-              Start countdown
-            </button>
-            <button
-              id="resetButton"
-              class="rounded-full border border-slate-200 px-5 py-2 font-semibold text-slate-600 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-200"
-            >
-              Reset
-            </button>
-          </div>
-        </div>
-
         <div class="text-center space-y-2">
           <p class="text-sm uppercase tracking-wide text-slate-400">Countdown</p>
           <p id="countdownDisplay" class="text-5xl font-semibold">Ready</p>
+          <p id="statusMessage" class="text-sm text-rose-500"></p>
         </div>
 
-        <div id="reactionArea" class="grid gap-3 sm:grid-cols-2"></div>
+        <div class="text-center space-y-3">
+          <button
+            id="clickButton"
+            class="rounded-full bg-amber-400 px-10 py-4 text-xl font-semibold text-slate-900 shadow hover:bg-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-200 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
+            disabled
+          >
+            Click!
+          </button>
+          <p id="playerFeedback" class="text-sm text-slate-500">
+            Select your name above to get ready.
+          </p>
+        </div>
 
         <div class="rounded-3xl bg-slate-50 border border-slate-200 p-4 text-center">
           <p class="text-sm uppercase tracking-wide text-slate-400">Loser</p>
@@ -79,9 +71,14 @@
             Waiting for a round
           </p>
         </div>
+
+        <div class="space-y-2">
+          <p class="text-sm font-medium text-slate-600">Player status</p>
+          <ul id="playersList" class="grid gap-3 sm:grid-cols-2"></ul>
+        </div>
       </section>
     </main>
 
-    <script src="script.js"></script>
+    <script src="player.js"></script>
   </body>
 </html>

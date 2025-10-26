@@ -37,6 +37,12 @@ function applyState(newState) {
 }
 
 function renderPlayers() {
+  if (appState.players.length === 0) {
+    playerList.innerHTML =
+      '<li class="rounded-2xl border border-dashed border-slate-200 bg-white px-4 py-6 text-center text-slate-400">No players yet. Add names to get started.</li>';
+    return;
+  }
+
   const content = appState.players
     .map((player) => {
       const hasTime = typeof player.reactionTime === "number";
@@ -57,45 +63,70 @@ function renderPlayers() {
   playerList.innerHTML = content;
 }
 
+function playerReactionStatus(player) {
+  if (typeof player.reactionTime === "number") {
+    return `<span class="rounded-full bg-emerald-100 px-3 py-1 text-sm font-semibold text-emerald-700">${(
+      player.reactionTime / 1000
+    ).toFixed(2)}s</span>`;
+  }
+
+  if (appState.gameActive) {
+    return '<span class="rounded-full bg-amber-100 px-3 py-1 text-sm font-semibold text-amber-700">Waiting</span>';
+  }
+
+  if (appState.countdownRunning) {
+    return '<span class="rounded-full bg-sky-100 px-3 py-1 text-sm font-semibold text-sky-700">Countdown</span>';
+  }
+
+  return '<span class="rounded-full bg-slate-100 px-3 py-1 text-sm font-semibold text-slate-600">Ready</span>';
+}
+
 function renderReactionArea() {
-  if (!appState.gameActive) {
-    reactionArea.innerHTML = "";
+  if (appState.players.length === 0) {
+    reactionArea.innerHTML =
+      '<p class="text-sm text-slate-500">Player reaction status will appear here during a round.</p>';
     return;
   }
 
-  reactionArea.innerHTML = appState.players
-    .map((player) => {
-      const hasTime = typeof player.reactionTime === "number";
-      const disabledAttr = hasTime ? "disabled" : "";
-      const label = hasTime ? `${player.name} \u2713` : player.name;
-      return `
-        <button
-          class="rounded-2xl bg-amber-400 px-4 py-3 text-lg font-semibold text-slate-900 shadow hover:bg-amber-500 disabled:cursor-not-allowed disabled:bg-slate-200"
-          data-player-id="${player.id}"
-          ${disabledAttr}
-        >
-          ${label}
-        </button>
-      `;
-    })
+  const summaryMessage = appState.gameActive
+    ? "Round in progress. Waiting for player clicks..."
+    : appState.countdownRunning
+    ? "Countdown running. Get everyone ready."
+    : "Start a round when everyone is set.";
+
+  const cards = appState.players
+    .map(
+      (player) => `
+        <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3 flex items-center justify-between">
+          <span class="font-medium">${player.name}</span>
+          ${playerReactionStatus(player)}
+        </div>
+      `
+    )
     .join("");
 
-  reactionArea.querySelectorAll("button[data-player-id]").forEach((button) => {
-    button.addEventListener("click", () => {
-      const playerId = Number(button.dataset.playerId);
-      sendMessage("playerReaction", { playerId });
-    });
-  });
+  reactionArea.innerHTML = `
+    <p class="col-span-full text-sm text-slate-500">${summaryMessage}</p>
+    ${cards}
+  `;
 }
 
 function renderControls() {
   const controlsDisabled =
     !socketConnected || appState.countdownRunning || appState.gameActive;
 
+  const notEnoughPlayers = appState.players.length < 2;
+
   playerNameInput.disabled = controlsDisabled;
   addPlayerButton.disabled = controlsDisabled;
-  startButton.disabled = controlsDisabled;
+  startButton.disabled = controlsDisabled || notEnoughPlayers;
   resetButton.disabled = !socketConnected;
+
+  if (notEnoughPlayers) {
+    startButton.title = "Add at least two players to begin.";
+  } else {
+    startButton.removeAttribute("title");
+  }
 }
 
 function renderStatus() {
