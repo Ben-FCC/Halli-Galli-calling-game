@@ -11,6 +11,10 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.static(path.join(__dirname)));
 
+app.get("/admin", (req, res) => {
+  res.sendFile(path.join(__dirname, "admin.html"));
+});
+
 let nextPlayerId = 1;
 let countdownTimer = null;
 let reactionStart = null;
