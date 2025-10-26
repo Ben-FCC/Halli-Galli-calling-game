@@ -1,8 +1,5 @@
 "use strict";
 
-const playerForm = document.querySelector("#playerForm");
-const playerNameInput = document.querySelector("#playerName");
-const addPlayerButton = playerForm.querySelector('button[type="submit"]');
 const playerList = document.querySelector("#playerList");
 const statusMessageEl = document.querySelector("#statusMessage");
 const startButton = document.querySelector("#startButton");
@@ -114,11 +111,7 @@ function renderReactionArea() {
 function renderControls() {
   const controlsDisabled =
     !socketConnected || appState.countdownRunning || appState.gameActive;
-
   const notEnoughPlayers = appState.players.length < 2;
-
-  playerNameInput.disabled = controlsDisabled;
-  addPlayerButton.disabled = controlsDisabled;
   startButton.disabled = controlsDisabled || notEnoughPlayers;
   resetButton.disabled = !socketConnected;
 
@@ -211,18 +204,6 @@ function connect() {
     scheduleReconnect();
   });
 }
-
-playerForm.addEventListener("submit", (event) => {
-  event.preventDefault();
-  if (!socketConnected) {
-    return;
-  }
-
-  const name = playerNameInput.value;
-  sendMessage("addPlayer", { name });
-  playerNameInput.value = "";
-  playerNameInput.focus();
-});
 
 startButton.addEventListener("click", () => {
   sendMessage("startCountdown");

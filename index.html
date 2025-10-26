@@ -28,10 +28,39 @@
         </p>
       </header>
 
-      <section class="bg-slate-50 border border-slate-200 rounded-3xl p-6 space-y-4">
+      <section class="bg-slate-50 border border-slate-200 rounded-3xl p-6 space-y-6">
+        <div class="space-y-3">
+          <h2 class="text-lg font-semibold text-slate-700">Join the game</h2>
+          <form
+            id="joinForm"
+            class="flex flex-col gap-3 sm:flex-row"
+            autocomplete="off"
+          >
+            <label class="sr-only" for="playerNameInput">Your name</label>
+            <input
+              id="playerNameInput"
+              type="text"
+              placeholder="Type your name to join"
+              class="flex-1 rounded-full border border-slate-200 px-4 py-2 text-base focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+            />
+            <button
+              id="joinButton"
+              type="submit"
+              class="rounded-full bg-sky-500 px-5 py-2 text-white font-medium shadow hover:bg-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-200 disabled:cursor-not-allowed disabled:bg-slate-300"
+            >
+              Join game
+            </button>
+          </form>
+          <p
+            id="joinStatus"
+            class="text-sm text-slate-500 min-h-[1.5rem]"
+            aria-live="polite"
+          ></p>
+        </div>
+
         <div class="space-y-2">
           <label class="block text-sm font-medium text-slate-600" for="playerSelect"
-            >Who&apos;s playing on this device?</label
+            >Already joined on this device?</label
           >
           <select
             id="playerSelect"
@@ -40,7 +69,8 @@
             <option value="">Select your name</option>
           </select>
           <p id="selectionHint" class="text-sm text-slate-500">
-            Ask the admin to add you if your name isn&apos;t listed yet.
+            If you&apos;ve already joined, pick your name to link this device. Otherwise,
+            add yourself above.
           </p>
         </div>
       </section>
@@ -61,7 +91,7 @@
             Click!
           </button>
           <p id="playerFeedback" class="text-sm text-slate-500">
-            Select your name above to get ready.
+            Join the game above to get ready.
           </p>
         </div>
 
